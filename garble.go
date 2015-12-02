@@ -42,6 +42,10 @@ func readTrie() (*trie.Trie, error) {
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
 		k := scanner.Text()
+		if k == "" {
+			continue
+		}
+
 		b := []byte(k)[:]
 		obfuscate(b)
 		t.Put(k, b)
