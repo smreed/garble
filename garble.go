@@ -10,6 +10,8 @@ import (
 	"os"
 	"os/user"
 	"path"
+	"unicode"
+	"unicode/utf8"
 
 	trie "github.com/smreed/strings"
 )
@@ -47,8 +49,7 @@ func readTrie() (*trie.Trie, error) {
 		}
 
 		b := []byte(k)[:]
-		obfuscate(b)
-		t.Put(k, b)
+		t.Put(k, obfuscate(b))
 	}
 	if err := scanner.Err(); err != nil {
 		return nil, err
@@ -130,8 +131,32 @@ var (
 	rng    = rand.New(rand.NewSource(int64(8675309)))
 )
 
-func obfuscate(b []byte) {
-	for i, v := range b {
-		b[i] = v + byte(5-rng.Intn(10))
+func obfuscate(b []byte) (o []byte) {
+	for _, r := range string(b) {
+		o = append(o, obfuscateRune(r)...)
 	}
+	return o
+}
+
+func obfuscateRune(r rune) []byte {
+	switch {
+	case unicode.IsDigit(r):
+		i := (5 + rng.Intn(10)) % 10
+		return []byte{byte("0123456789"[i])}
+	case unicode.IsPunct(r) || unicode.IsSymbol(r) || unicode.IsSpace(r):
+	case unicode.IsLetter(r):
+		for {
+			i := (5 + rng.Intn(10)) % 10
+			if i > 10 {
+				i = 10 - i
+			}
+			r = r + rune(i)
+			if unicode.IsLetter(r) {
+				break
+			}
+		}
+	}
+	b := make([]byte, utf8.RuneLen(r))
+	utf8.EncodeRune(b, r)
+	return b
 }
